@@ -47,7 +47,6 @@ binding = "DB_META"
 database_name = "arbor-meta"
 database_id = "REPLACE_WITH_REAL_ID_AFTER_first_remote_apply"
 migrations_dir = "src/db/migrations/meta"
-preview_remote_secret = true
 
 # Default workspace DB (local dev only; prod creates per-workspace DBs on demand)
 [[d1_databases]]
@@ -55,7 +54,6 @@ binding = "DB_WS_DEFAULT"
 database_name = "ws_default"
 database_id = "REPLACE_WITH_REAL_ID_AFTER_first_remote_apply"
 migrations_dir = "src/db/migrations/ws"
-preview_remote_secret = true
 
 # ---------- R2 Buckets ----------
 [[r2_buckets]]
@@ -100,14 +98,19 @@ dataset = "arbor_metrics"
 
 # ---------- Containers ----------
 # The Arbor Python runtime. Spin up one per active run.
-[[containers]]
-name = "arbor-runner"
-image = "REPLACE_WITH_REGISTRY/arbor-runner:latest"
-max_instances = 50
-instance_type = "standard"
-scheduling_policy = "default"
-vcpu = 2
-memory = "4Gi"
+# PHASE 1: Re-add this section once the Container image is published and the
+# class_name matches a Durable Object (Cloudflare requires the container's
+# class_name to match a DO class in the same script). For Phase 0 we run
+# the Python entrypoint locally via Docker; the API Worker doesn't need to
+# know about the container yet (the Worker emits synthetic events; in
+# production the Container talks to /api/internal/* directly).
+#
+# [[containers]]
+# name = "arbor-runner"
+# class_name = "RunDO"  # must match an exported DO class
+# image = "registry.cloudflare.com/<account_id>/arbor-runner:latest"
+# max_instances = 50
+# instance_type = "standard-1"
 
 # ---------- Static assets (none — Worker is API only) ----------
 

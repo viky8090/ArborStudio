@@ -68,7 +68,7 @@ v1.route('/auth', authRoutes);
 v1.route('/me', meRoutes);
 v1.route('/workspaces', workspaceRoutes);
 v1.route('/projects', projectRoutes);
-v1.route('/runs', runRoutes);
+v1.route('/projects/:pid/runs', runRoutes);
 v1.route('/plugins', pluginRoutes);
 v1.route('/skills', skillRoutes);
 v1.route('/llm-keys', llmKeyRoutes);
@@ -95,8 +95,22 @@ app.notFound((c) =>
 );
 
 // ----- 500 / error handler -----
+import { ZodError } from 'zod';
+
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
+  if (err instanceof ZodError) {
+    return c.json(
+      {
+        type: 'about:blank',
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Invalid request body.',
+        errors: err.errors,
+      },
+      400,
+    );
+  }
   return c.json(problemJson(500, 'Internal Server Error', err.message), 500);
 });
 

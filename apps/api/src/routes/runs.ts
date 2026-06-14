@@ -34,10 +34,12 @@ runRoutes.use('*', requireAuth);
 
 runRoutes.get('/', async (c) => {
   const pid = c.req.param('pid')!;
-  const db = workspaceDb(c.env, c.get('workspaceId'));
+  const wid = c.req.query('workspaceId') ?? c.get('workspaceId');
+  const db = workspaceDb(c.env, wid);
   const rows = await db
     .prepare(
-      `SELECT id, name, status, mode, max_cycles, spent_usd, started_at, ended_at, created_at
+      `SELECT id, workspace_id, project_id, name, status, mode, max_cycles, max_turns,
+              spent_usd, started_at, ended_at, created_at
        FROM runs WHERE project_id = ? ORDER BY created_at DESC LIMIT 100`,
     )
     .bind(pid)
@@ -71,15 +73,17 @@ runRoutes.post('/', async (c) => {
 
   await db
     .prepare(
-      `INSERT INTO runs (id, project_id, name, status, mode, max_cycles, max_turns,
+      `INSERT INTO runs (id, workspace_id, project_id, name, status, mode, max_cycles, max_turns,
          plugin, plugin_profile, skills, reasoning_effort, model, budget_usd,
          do_id, ws_url, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, 'starting', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       rid,
+      wid,
       pid,
       body.name,
+      'starting', // status
       body.mode,
       body.maxCycles,
       body.maxTurns,
@@ -130,7 +134,8 @@ runRoutes.post('/', async (c) => {
 
 runRoutes.get('/:rid', async (c) => {
   const rid = c.req.param('rid')!;
-  const db = workspaceDb(c.env, c.get('workspaceId'));
+  const wid = c.req.query('workspaceId') ?? c.get('workspaceId');
+  const db = workspaceDb(c.env, wid);
   const row = await db.prepare('SELECT * FROM runs WHERE id = ?').bind(rid).first();
   if (!row) throw new HttpError(404, 'Not Found');
   return c.json(row);

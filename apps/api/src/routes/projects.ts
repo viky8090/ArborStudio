@@ -31,7 +31,7 @@ projectRoutes.get('/', async (c) => {
   const wid = c.req.query('workspaceId') ?? c.get('workspaceId');
   const db = workspaceDb(c.env, wid);
   const rows = await db
-    .prepare('SELECT id, name, repo_url, default_branch, baseline_metric, created_at FROM projects WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 100')
+    .prepare('SELECT id, workspace_id, name, repo_url, default_branch, baseline_metric, created_at FROM projects WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 100')
     .all();
   return c.json({ projects: rows.results });
 });
@@ -52,10 +52,10 @@ projectRoutes.post('/', async (c) => {
   const db = workspaceDb(c.env, wid);
   await db
     .prepare(
-      `INSERT INTO projects (id, name, repo_url, default_branch, baseline_metric, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO projects (id, workspace_id, name, repo_url, default_branch, baseline_metric, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(pid, body.name, body.repoUrl ?? null, body.defaultBranch, body.baselineMetric ?? null, now, now)
+    .bind(pid, wid, body.name, body.repoUrl ?? null, body.defaultBranch, body.baselineMetric ?? null, now, now)
     .run();
   return c.json({ id: pid, ...body }, 201);
 });
