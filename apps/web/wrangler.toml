@@ -1,0 +1,10 @@
+name = "arbor-web"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".open-next/dist"
+
+# The Pages project shares the Worker's D1, R2, KV, DO bindings.
+# (The web app only reads; all writes go through the Worker API.)
+
+# In production, OpenNext generates the worker code under .open-next/ and Pages
+# deploys it. Locally, `next dev` runs as a normal Next.js server.

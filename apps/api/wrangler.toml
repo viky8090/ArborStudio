@@ -1,0 +1,128 @@
+# ArborStudio API — Cloudflare Worker
+# This file is the source of truth for bindings, vars, routes, and environments.
+# Secrets (CLOUDFLARE_API_TOKEN, JWT_SECRET, TURNSTILE_SECRET, KEK) live in `wrangler secret`.
+
+name = "arbor-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# ---------- Observability ----------
+[observability]
+enabled = true
+
+# ---------- Vars (non-secret config) ----------
+[vars]
+ENVIRONMENT = "development"
+LOG_LEVEL = "debug"
+JWT_ISSUER = "arborstudio"
+JWT_AUDIENCE = "arborstudio-api"
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"  # Cloudflare test key, replace in prod
+DEFAULT_REGION = "us-east"
+ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+
+# ---------- Durable Objects ----------
+# RunDO: 1 per active run = WebSocket hub + live tree + event log
+[[durable_objects.bindings]]
+name = "RUN_DO"
+class_name = "RunDO"
+
+# WorkspaceDO: 1 per workspace = rate limiting + session cache
+[[durable_objects.bindings]]
+name = "WORKSPACE_DO"
+class_name = "WorkspaceDO"
+
+# Migration: one-shot SQLite setup for RunDO
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RunDO", "WorkspaceDO"]
+
+# ---------- D1 Databases ----------
+# Per-workspace pattern: each workspace gets its own D1 DB.
+# We use a single "ws_default" DB for local dev (the binding is created lazily per workspace in prod).
+
+# Global meta DB: tenants, users, sessions, billing
+[[d1_databases]]
+binding = "DB_META"
+database_name = "arbor-meta"
+database_id = "REPLACE_WITH_REAL_ID_AFTER_first_remote_apply"
+migrations_dir = "src/db/migrations/meta"
+preview_remote_secret = true
+
+# Default workspace DB (local dev only; prod creates per-workspace DBs on demand)
+[[d1_databases]]
+binding = "DB_WS_DEFAULT"
+database_name = "ws_default"
+database_id = "REPLACE_WITH_REAL_ID_AFTER_first_remote_apply"
+migrations_dir = "src/db/migrations/ws"
+preview_remote_secret = true
+
+# ---------- R2 Buckets ----------
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "arbor-assets"
+preview_bucket_name = "arbor-assets-preview"
+
+# ---------- KV Namespaces ----------
+# Sessions + rate limit + feature flags + cached D1 binding resolver
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_REAL_ID"
+preview_id = "REPLACE_WITH_REAL_ID"
+
+# ---------- Queues ----------
+# Container event bursts (producer = Container, consumer = Worker -> DO)
+[[queues.producers]]
+queue = "events-from-container"
+binding = "EVENTS_QUEUE"
+
+[[queues.consumers]]
+queue = "events-from-container"
+max_batch_size = 20
+max_retries = 3
+dead_letter_queue = "events-from-container-dlq"
+
+# Dead letter for failed events
+[[queues.producers]]
+queue = "events-from-container-dlq"
+binding = "EVENTS_DLQ"
+
+# ---------- AI Gateway ----------
+# All LLM calls go through this. Identifiers below are placeholders; real IDs come after first deploy.
+[ai]
+binding = "AI"
+
+# ---------- Analytics Engine ----------
+# High-cardinality metrics: runs_active, cycles_per_minute, cost_per_minute, ws_connections, etc.
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+dataset = "arbor_metrics"
+
+# ---------- Containers ----------
+# The Arbor Python runtime. Spin up one per active run.
+[[containers]]
+name = "arbor-runner"
+image = "REPLACE_WITH_REGISTRY/arbor-runner:latest"
+max_instances = 50
+instance_type = "standard"
+scheduling_policy = "default"
+vcpu = 2
+memory = "4Gi"
+
+# ---------- Static assets (none — Worker is API only) ----------
+
+# ---------- Routes ----------
+# (No custom routes in dev; wrangler.dev serves via the workers.dev URL)
+
+# ---------- Environments ----------
+[env.staging]
+name = "arbor-api-staging"
+vars = { ENVIRONMENT = "staging", LOG_LEVEL = "info", ALLOWED_ORIGINS = "https://staging.arborstudio.pages.dev" }
+routes = [{ pattern = "api-staging.arborstudio.com/*", custom_domain = true }]
+
+[env.production]
+name = "arbor-api-production"
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "info", ALLOWED_ORIGINS = "https://arborstudio.pages.dev" }
+routes = [{ pattern = "api.arborstudio.com/*", custom_domain = true }]
+
+# Inherit bindings in higher envs — wrangler does this automatically

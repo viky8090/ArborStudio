@@ -1,0 +1,23 @@
+# Local dev secrets (NEVER COMMIT)
+# Copy to `.dev.vars` and fill in. `.dev.vars` is gitignored.
+# Production secrets live in `wrangler secret put <NAME>`.
+
+# JWT signing (use a 32+ char random string in dev; rotate in prod)
+JWT_SECRET = "dev-jwt-secret-change-me-to-a-32-char-random-string-please"
+
+# Master KEK for envelope-encrypting LLM API keys
+# 32 bytes, base64-encoded. Generate with: openssl rand -base64 32
+KEK = "ZGV2LWtleS1lbmNyeXB0aW9uLW1hc3Rlci1yZXBsYWNlLW1lLWluLXByb2Q="
+
+# Turnstile (use the Cloudflare test secret in dev: "1x0000000000000000000000000000000AA")
+TURNSTILE_SECRET = "1x0000000000000000000000000000000AA"
+
+# AI Gateway (auto-bound; not a secret)
+# Set in wrangler.toml's [ai] block
+
+# Stripe (use test keys in dev)
+STRIPE_SECRET_KEY = "sk_test_REPLACE_ME"
+STRIPE_WEBHOOK_SECRET = "whsec_REPLACE_ME"
+
+# Sentry (optional, free tier is fine)
+SENTRY_DSN = ""

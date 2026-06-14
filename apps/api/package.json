@@ -1,0 +1,42 @@
+{
+  "name": "@arborstudio/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ArborStudio API — Cloudflare Worker (Hono router, Durable Objects, all bindings)",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run --outdir=dist",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "clean": "rm -rf dist .wrangler .mf coverage",
+    "db:migrate:local": "wrangler d1 migrations apply arbor-meta --local && wrangler d1 migrations apply ws_default --local",
+    "db:migrate:remote": "wrangler d1 migrations apply arbor-meta --remote && wrangler d1 migrations apply ws_default --remote",
+    "db:migrations:create": "wrangler d1 migrations create",
+    "cf:tail": "wrangler tail",
+    "cf:secret:set": "wrangler secret put"
+  },
+  "dependencies": {
+    "@arborstudio/contracts": "workspace:*",
+    "@cloudflare/containers": "^0.0.20",
+    "@hono/zod-validator": "^0.4.1",
+    "hono": "^4.6.0",
+    "jose": "^5.9.0",
+    "ulid": "^2.3.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@cloudflare/vitest-pool-workers": "^0.5.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.100.0"
+  }
+}
